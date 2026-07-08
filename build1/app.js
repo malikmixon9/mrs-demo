@@ -116,6 +116,7 @@ const NAV = {
   Administrator: [
     { view: "tracker", label: "Master Client Tracker" },
     { view: "addclient", label: "Add Client" },
+    { view: "addcoach", label: "Add Coach" },
     { view: "reminders", label: "Follow-up Reminders" },
     { view: "billing", label: "Billing" },
     { view: "archive", label: "Archive" }
@@ -159,6 +160,7 @@ function render() {
     case "reminders": return renderReminders(c);
     case "archive": return renderArchive(c);
     case "addclient": return renderAddClient(c);
+    case "addcoach": return renderAddCoach(c);
   }
 }
 function setTitle(t) { el("viewTitle").textContent = t; }
@@ -191,15 +193,17 @@ function renderTracker(c) {
   wireClientRows();
   document.querySelectorAll("[data-reveal]").forEach(b => b.onclick = ev => {
     ev.stopPropagation();
-    const id = b.dataset.reveal; state.revealed[id] = true;
-    audit("Revealed SSN", CLIENTS.find(x => x.id === id).name);
+    const id = b.dataset.reveal;
+    const on = !state.revealed[id];
+    state.revealed[id] = on;
+    audit(on ? "Revealed SSN" : "Hid SSN", CLIENTS.find(x => x.id === id).name);
     render();
   });
 }
 function rowAdmin(x) {
   const shown = state.revealed[x.id];
   const ssnCell = shown
-    ? `<span class="ssn">${x.ssn}</span>`
+    ? `<span class="ssn">${x.ssn}</span><button class="link-btn" data-reveal="${x.id}">hide</button>`
     : `<span class="ssn">${maskSSN(x.ssn)}</span><button class="link-btn" data-reveal="${x.id}">reveal</button>`;
   return `<tr class="clickable" data-client="${x.id}">
     <td><b>${esc(x.name)}</b><br><span class="locked" style="font-style:normal">${esc(x.goal)}</span></td>
@@ -407,7 +411,6 @@ function renderPlacement(c) {
 }
 
 function generateNote(x) {
-  const pc = placementCounts(x);
   const last = x.progressLog.slice(-1)[0];
   return [
     "MRS PROGRESS NOTE (DRAFT)",
@@ -422,8 +425,8 @@ function generateNote(x) {
     "Hours delivered: " + hoursDelivered(x) + " of " + x.authorizedHours + " authorized (" + pctComplete(x) + "% complete).",
     "Current status: " + x.status + ".",
     "",
-    "PLACEMENT ACTIVITY",
-    "Applications: " + pc.apps + "    Interviews: " + pc.interviews + "    Employer contacts: " + pc.contacts + ".",
+    "SERVICE SESSIONS",
+    "Sessions logged this authorization: " + x.progressLog.length + ".",
     (last
       ? "Most recent session (" + fmtDate(last.date) + ", " + last.type + ", " + last.hours + " hrs): " + last.report + " Next: " + last.next
       : "No service sessions logged yet."),
@@ -526,6 +529,41 @@ function wireDraftButtons() {
     audit("Added lead to tracker", x.name + " -> " + l.title + " at " + l.employer);
     render(); // counts and boards recalculate from the new record
   });
+}
+
+/* ---------- Add Coach (Administrator data entry) ---------- */
+function renderAddCoach(c) {
+  setTitle("Add Coach");
+  const rows = COACHES.map(n => {
+    const load = CLIENTS.filter(x => x.coach === n && !isArchived(x)).length;
+    return `<tr><td><b>${esc(n)}</b></td><td class="mono">${load}</td><td><span class="badge active">Active</span></td></tr>`;
+  }).join("");
+  c.innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>Current team</h3></div>
+      <div class="panel-body"><table>
+        <thead><tr><th>Coach</th><th>Assigned clients</th><th>Status</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h3>New coach account</h3></div>
+      <div class="log-form" style="border-top:0;background:#fff;">
+        <div class="grid2">
+          <div><label>Coach full name</label><input type="text" id="k_name" placeholder="First and last name"></div>
+          <div><label>Email (their login)</label><input type="text" id="k_email" placeholder="coach@company.com"></div>
+        </div>
+        <div><button class="btn primary" id="k_save">Create coach account</button></div>
+        <div class="locked" style="font-style:normal">In the full build this sends the coach a secure invite to set their own password. New coaches appear in the assign-coach dropdown immediately.</div>
+      </div>
+    </div>`;
+  el("k_save").onclick = () => {
+    const name = el("k_name").value.trim();
+    if (!name) { el("k_name").focus(); return; }
+    COACHES.push(name);
+    audit("Created coach account", name);
+    render();
+  };
 }
 
 /* ---------- Add Client (Administrator data entry) ---------- */
@@ -679,14 +717,6 @@ function renderReminders(c) {
     if (dl < 0) items.push({ urg: 0, badge: '<span class="badge bad">overdue</span>', client: x, text: "Authorization ended with " + (x.authorizedHours - hoursDelivered(x)) + " hours undelivered. Review with " + x.coach + " and contact the MRS counselor about next steps." });
     else if (dl <= 7) items.push({ urg: 1, badge: '<span class="badge warn">due in ' + dl + ' days</span>', client: x, text: "Authorization ends soon at " + pctComplete(x) + "% complete. Prioritize remaining sessions." });
     if (lastPr && lastPr.next && lastPr.next !== "(none)") items.push({ urg: 2, badge: '<span class="badge new">next step</span>', client: x, text: lastPr.next });
-    // One reminder per EMPLOYER, from that employer's latest activity, so two
-    // tracked jobs mean two follow-ups (not just the most recent one).
-    const latestByEmployer = {};
-    (x.placementLog || []).forEach(e => { latestByEmployer[e.employer] = e; });
-    Object.values(latestByEmployer).forEach(e => {
-      if (e.kind === "Interview") items.push({ urg: 1, badge: '<span class="badge warn">interview follow-up</span>', client: x, text: "Follow up with " + e.employer + " on the latest interview and log the outcome." });
-      else if (e.kind === "Application") items.push({ urg: 1, badge: '<span class="badge warn">new application</span>', client: x, text: "Application filed with " + e.employer + ". Send the outreach if you have not yet, then chase a response and log it." });
-    });
     if (!x.progressLog.length && !((x.placementLog || []).length)) items.push({ urg: 1, badge: '<span class="badge new">not started</span>', client: x, text: "No activity logged yet. Schedule the intake session." });
   });
   items.sort((a, b) => a.urg - b.urg);
@@ -734,16 +764,6 @@ function renderClient(c) {
       </div>`).join("")
     : `<div class="log-entry locked">No progress entries yet.</div>`;
 
-  const plLog = x.placementLog || [];
-  const pc = placementCounts(x);
-  const kindClass = k => ({ "Application": "new", "Interview": "active", "Employer Contact": "warn" }[k] || "new");
-  const plEntries = plLog.length
-    ? plLog.slice().reverse().map(e => `
-      <div class="log-entry">
-        <div class="meta"><span class="badge ${kindClass(e.kind)}">${e.kind}</span> <b>${esc(e.employer)}</b> <span>${fmtDate(e.date)}</span></div>
-        <p>${esc(e.note)}</p>
-      </div>`).join("")
-    : `<div class="log-entry locked">No job-search activity logged yet.</div>`;
 
   const leads = x.leads || [];
   const leadsHtml = leads.length
@@ -787,14 +807,9 @@ function renderClient(c) {
       ${canLog ? logForm() : (state.role === "Supervisor"
         ? '<div class="log-form locked" style="font-style:normal">Read-only. Supervisors monitor progress but do not edit records.</div>' : "")}
     </div>
-    <div class="panel">
-      <div class="panel-head"><h3>Job Progression</h3><span class="locked" style="font-style:normal">${pc.apps} applications &middot; ${pc.interviews} interviews &middot; ${pc.contacts} employer contacts</span></div>
-      <div class="panel-body">${plEntries}</div>
-      ${canLog ? placementForm() : ""}
-    </div>
     `;
   el("backBtn").onclick = () => { state.clientId = null; render(); };
-  if (canLog) { el("genNoteBtn").onclick = () => showNote(x); wireLogForm(x); wirePlacementForm(x); }
+  if (canLog) { el("genNoteBtn").onclick = () => showNote(x); wireLogForm(x); }
 }
 function placementForm() {
   const kinds = ["Application", "Interview", "Employer Contact"];

@@ -197,15 +197,17 @@ function renderTracker(c) {
   wireClientRows();
   document.querySelectorAll("[data-reveal]").forEach(b => b.onclick = ev => {
     ev.stopPropagation();
-    const id = b.dataset.reveal; state.revealed[id] = true;
-    audit("Revealed SSN", CLIENTS.find(x => x.id === id).name);
+    const id = b.dataset.reveal;
+    const on = !state.revealed[id];
+    state.revealed[id] = on;
+    audit(on ? "Revealed SSN" : "Hid SSN", CLIENTS.find(x => x.id === id).name);
     render();
   });
 }
 function rowAdmin(x) {
   const shown = state.revealed[x.id];
   const ssnCell = shown
-    ? `<span class="ssn">${x.ssn}</span>`
+    ? `<span class="ssn">${x.ssn}</span><button class="link-btn" data-reveal="${x.id}">hide</button>`
     : `<span class="ssn">${maskSSN(x.ssn)}</span><button class="link-btn" data-reveal="${x.id}">reveal</button>`;
   return `<tr class="clickable" data-client="${x.id}">
     <td><b>${esc(x.name)}</b><br><span class="locked" style="font-style:normal">${esc(x.goal)}</span></td>
