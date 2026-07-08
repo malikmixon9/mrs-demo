@@ -235,8 +235,10 @@ body.a11y-motion *, body.a11y-motion *::before, body.a11y-motion *::after { tran
   .content{ padding: 14px; }
   .panel-head{ flex-wrap: wrap; gap: 6px; }
   /* Wide tables: swipe sideways inside the card instead of getting cut off */
-  .panel-body{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .panel-body table{ min-width: 640px; }
+  .content{ overflow-x: hidden; }
+  .panel{ overflow: visible; }
+  .panel-body{ overflow-x: auto; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; }
+  .panel-body table{ min-width: 780px; width: max-content; max-width: none; }
   table{ font-size: 13px; }
   th, td{ padding: 9px 10px; }
   .grid2{ grid-template-columns: 1fr; }
