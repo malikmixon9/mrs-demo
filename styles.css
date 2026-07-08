@@ -234,7 +234,17 @@ body.a11y-motion *, body.a11y-motion *::before, body.a11y-motion *::after { tran
   .topbar h2{ flex-basis: 100%; }
   .content{ padding: 14px; }
   .panel-head{ flex-wrap: wrap; gap: 6px; }
+  /* Wide tables: swipe sideways inside the card instead of getting cut off */
+  .panel-body{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .panel-body table{ min-width: 640px; }
   table{ font-size: 13px; }
   th, td{ padding: 9px 10px; }
   .grid2{ grid-template-columns: 1fr; }
+  .drawer{ width: 100vw; max-width: 100vw; }
+  /* Badges: text centered in the pill, compact size, never stretched tall by
+     wrapped rows (fixes the "new today" bubble looking top-aligned and oversized) */
+  .log-entry .meta, .audit-item .a-meta{ flex-wrap: wrap; align-items: center; row-gap: 5px; }
+  .badge{ display: inline-flex; align-items: center; justify-content: center;
+    align-self: center; padding: 2px 8px; font-size: 10.5px; line-height: 1.5; }
+  .log-entry .meta .btn{ align-self: center; }
 }
