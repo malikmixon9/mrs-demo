@@ -196,14 +196,39 @@ tr.clickable:hover { background: #f8fafc; cursor: pointer; }
   border: 0; outline: none; resize: none; width: 100%; flex: 1; min-height: 320px; background: #fff; }
 .note-actions { padding: 12px 20px; border-top: 1px solid var(--line); display: flex; align-items: center; gap: 12px; }
 .matches-head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+/* ---------- Accessibility menu + modes ---------- */
+.a11y-menu {
+  position: fixed; top: 54px; right: 16px; z-index: 80; display: none;
+  background: #fff; border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(20,33,61,.22); padding: 14px 16px; width: 250px;
+}
+.a11y-menu.open { display: block; }
+.a11y-menu label { display: flex; align-items: center; gap: 9px; font-size: 13.5px; padding: 7px 2px; cursor: pointer; }
+.a11y-menu input { width: 16px; height: 16px; accent-color: var(--teal); }
+
+body.a11y-large { zoom: 1.15; }
+body.a11y-contrast { --muted: #374151; --line: #8b95a5; --text: #0b0f14; }
+body.a11y-contrast .badge { border: 1px solid currentColor; }
+body.a11y-cb { --teal: #1d4ed8; --teal-dark: #1e40af; --good: #1d4ed8; --warn: #b45309; --bad: #7c2d12; }
+body.a11y-cb .badge.active { background: rgba(29,78,216,.12); color: #1e40af; }
+body.a11y-cb .badge.bad { background: rgba(124,45,18,.12); color: #7c2d12; }
+body.a11y-cb .badge.warn { background: rgba(180,83,9,.14); color: #92400e; }
+body.a11y-motion *, body.a11y-motion *::before, body.a11y-motion *::after { transition: none !important; animation: none !important; }
+
+#navToggle { display: none; }
+
 /* Mobile: sidebar becomes a horizontal nav strip so every view stays reachable */
 @media (max-width: 720px){
   .stat-row{ grid-template-columns: 1fr 1fr !important; }
   .app{ grid-template-columns: 1fr; }
   .sidebar{ padding: 10px 10px 4px; }
   .sb-brand{ padding: 4px 8px 10px; }
-  #nav{ display: flex; overflow-x: auto; gap: 6px; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
-  .nav-item{ white-space: nowrap; width: auto; flex: none; padding: 8px 12px; font-size: 13px; }
+  /* Dropdown nav on phones: tap Menu to open, tap a view to jump */
+  #navToggle{ display: flex; justify-content: space-between; align-items: center;
+    background: rgba(255,255,255,.1); color: #fff; font-weight: 600; margin-bottom: 6px; }
+  #nav{ display: none; flex-direction: column; gap: 4px; padding-bottom: 8px; }
+  .sidebar.nav-open #nav{ display: flex; }
+  .nav-item{ font-size: 13.5px; }
   .nav-sec{ display: none; }
   .topbar{ flex-wrap: wrap; gap: 8px; padding: 10px 14px; }
   .topbar h2{ flex-basis: 100%; }

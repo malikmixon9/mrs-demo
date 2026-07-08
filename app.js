@@ -53,16 +53,43 @@ function renderLogin() {
       <span><span class="r-name">${r}</span><br><span class="r-desc">${ROLE_DESC[r]}</span></span>
     </button>`).join("");
 }
+// Login is a two-step: pick a role, then enter the demo password. The password
+// gate is prototype theater with a shared demo password; the real app gets real
+// per-user credentials and MFA (build spec A4).
+let pendingRole = null;
+const DEMO_PASSWORD = "mrs2026";
+function askPassword(role) {
+  pendingRole = role;
+  el("pwWho").textContent = role;
+  el("pwErr").style.display = "none";
+  el("pwInput").value = "";
+  el("pwRow").style.display = "block";
+  el("pwInput").focus();
+}
+function tryPassword() {
+  if (!pendingRole) return;
+  if (el("pwInput").value === DEMO_PASSWORD) {
+    el("pwRow").style.display = "none";
+    el("pwInput").value = "";
+    login(pendingRole);
+    pendingRole = null;
+  } else {
+    el("pwErr").style.display = "block";
+    el("pwInput").select();
+  }
+}
 // Bulletproof login: one delegated listener on the container (works no matter
 // where inside the button the click lands, and never loses its binding).
 el("roleButtons").addEventListener("click", ev => {
   const b = ev.target.closest(".role-btn");
-  if (b) login(b.dataset.role);
+  if (b) askPassword(b.dataset.role);
 });
 el("roleButtons").addEventListener("keydown", ev => {
   const b = ev.target.closest(".role-btn");
-  if (b && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); login(b.dataset.role); }
+  if (b && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); askPassword(b.dataset.role); }
 });
+el("pwGo").addEventListener("click", tryPassword);
+el("pwInput").addEventListener("keydown", ev => { if (ev.key === "Enter") tryPassword(); });
 function login(role) {
   state.role = role;
   state.user = USERS[role];
@@ -111,11 +138,16 @@ const NAV = {
 function buildNav() {
   el("nav").innerHTML = `<div class="nav-sec">${state.role}</div>` +
     NAV[state.role].map(n => `<button class="nav-item" data-view="${n.view}">${n.label}</button>`).join("");
-  document.querySelectorAll(".nav-item").forEach(b => b.onclick = () => go(b.dataset.view));
+  document.querySelectorAll("#nav .nav-item").forEach(b => b.onclick = () => go(b.dataset.view));
 }
 function go(view) {
   state.view = view; state.clientId = null;
-  document.querySelectorAll(".nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  document.querySelectorAll("#nav .nav-item").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+  // mobile dropdown: close it and show where you are
+  document.querySelector(".sidebar").classList.remove("nav-open");
+  const cur = (NAV[state.role] || []).find(n => n.view === view);
+  el("navToggle").innerHTML = (cur ? cur.label : "Menu") + " &#9662;";
+  el("a11yMenu").classList.remove("open");
   render();
 }
 
@@ -804,5 +836,16 @@ el("noteCopy").onclick = () => { if (navigator.clipboard) navigator.clipboard.wr
 // restores the clean starting state instantly.
 el("resetBtn").onclick = () => location.reload();
 el("resetBtnLogin").onclick = () => location.reload();
+// Accessibility menu: simple modes anyone can flip on. Fitting for a disability
+// services organization; the real build targets WCAG 2.1 AA throughout.
+function toggleA11yMenu() { el("a11yMenu").classList.toggle("open"); }
+el("a11yBtn").onclick = toggleA11yMenu;
+el("a11yBtnLogin").onclick = toggleA11yMenu;
+document.querySelectorAll("[data-a11y]").forEach(cb => cb.onchange = () => {
+  document.body.classList.toggle(cb.dataset.a11y, cb.checked);
+  if (state.role) audit("Changed accessibility setting", cb.parentElement.textContent.trim() + (cb.checked ? " on" : " off"));
+});
+// mobile nav dropdown
+el("navToggle").onclick = () => document.querySelector(".sidebar").classList.toggle("nav-open");
 renderLogin();
 renderAudit();
