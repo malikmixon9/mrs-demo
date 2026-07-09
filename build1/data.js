@@ -16,9 +16,9 @@ const CLIENTS = [
     authorizedHours: 24, coach: "Denise Carter", disability: "Learning disability",
     goal: "Dental Administration", status: "Active",
     progressLog: [
-      { date: "2026-06-10", type: "Assessment", hours: 3, report: "Completed intake and interest profiler. Strong fit for administrative roles.", next: "Build resume, target dental offices." },
-      { date: "2026-06-18", type: "Job Development", hours: 4, report: "Resume finalized. Applied to 6 dental admin postings.", next: "Interview prep." },
-      { date: "2026-06-27", type: "Job Coaching", hours: 3, report: "Interview skills completed. Two interviews scheduled.", next: "Employer outreach next week." }
+      { date: "2026-06-10", type: "Assessment", hours: 3, report: "Completed intake and interest profiler. Service plan drafted with client.", next: "Schedule weekly coaching sessions." },
+      { date: "2026-06-18", type: "Job Coaching", hours: 4, report: "Coaching session on workplace communication and daily routines. Documentation updated.", next: "Continue skill-building sessions." },
+      { date: "2026-06-27", type: "Job Coaching", hours: 3, report: "Reviewed progress toward service-plan goals with client. All session notes current.", next: "Schedule mid-authorization review." }
     ]
   },
   {
@@ -28,8 +28,8 @@ const CLIENTS = [
     authorizedHours: 20, coach: "Marcus Hill", disability: "Physical mobility",
     goal: "Retail", status: "At risk",
     progressLog: [
-      { date: "2026-05-22", type: "Assessment", hours: 2, report: "Intake complete. Prefers close-to-transit retail roles.", next: "Accessibility screen of employers." },
-      { date: "2026-06-02", type: "Job Development", hours: 3, report: "Applied to 8 retail roles. One callback.", next: "Schedule mock interview." }
+      { date: "2026-05-22", type: "Assessment", hours: 2, report: "Intake complete. Transportation and scheduling needs documented.", next: "Build the service plan with client." },
+      { date: "2026-06-02", type: "Job Coaching", hours: 3, report: "Coaching session on workplace readiness. Client engaged and on track.", next: "Schedule the next coaching session." }
     ]
   },
   {
@@ -39,8 +39,8 @@ const CLIENTS = [
     authorizedHours: 40, coach: "Denise Carter", disability: "Autism spectrum",
     goal: "Laundry / Facilities", status: "Active",
     progressLog: [
-      { date: "2026-06-17", type: "Assessment", hours: 4, report: "WBLE placement identified at community laundry facility.", next: "Begin worksite training." },
-      { date: "2026-06-24", type: "WBLE", hours: 6, report: "First worksite day. Learned folding and sorting stations.", next: "Continue worksite training, add register basics." }
+      { date: "2026-06-17", type: "Assessment", hours: 4, report: "Assessment complete. WBLE service schedule agreed with client and family.", next: "Begin scheduled training sessions." },
+      { date: "2026-06-24", type: "WBLE", hours: 6, report: "First training session delivered. Client comfortable with routines. Notes filed.", next: "Continue scheduled training sessions." }
     ]
   },
   {
@@ -58,10 +58,10 @@ const CLIENTS = [
     authorizedHours: 24, coach: "Marcus Hill", disability: "Anxiety disorder",
     goal: "Warehouse", status: "Complete",
     progressLog: [
-      { date: "2026-05-05", type: "Assessment", hours: 3, report: "Intake and goal setting.", next: "Applications." },
-      { date: "2026-05-14", type: "Job Development", hours: 8, report: "Applied to 12 warehouse roles, 3 interviews.", next: "Interview support." },
-      { date: "2026-05-24", type: "Job Coaching", hours: 8, report: "Hired at regional distribution center. Start date confirmed.", next: "30-day follow-up." },
-      { date: "2026-05-30", type: "Job Coaching", hours: 5, report: "First week on the job successful. Employer satisfied.", next: "Close out authorization." }
+      { date: "2026-05-05", type: "Assessment", hours: 3, report: "Intake and service-plan goal setting complete.", next: "Begin weekly sessions." },
+      { date: "2026-05-14", type: "Job Coaching", hours: 8, report: "Four coaching sessions delivered this period. Documentation current.", next: "Continue sessions." },
+      { date: "2026-05-24", type: "Job Coaching", hours: 8, report: "Service-plan goals met. Client outcomes documented for reporting.", next: "Final review session." },
+      { date: "2026-05-30", type: "Job Coaching", hours: 5, report: "All authorized hours delivered. Final documentation complete.", next: "Close out authorization." }
     ]
   }
 ];
