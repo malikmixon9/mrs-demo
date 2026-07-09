@@ -815,12 +815,23 @@ function wireLogForm(x) {
 function reportPool() { return CLIENTS.filter(x => !isArchived(x)); }
 function renderReport(c) {
   setTitle("Generate Report");
+  const tab = state.reportTab || "client";
+  c.innerHTML = `
+    <div class="report-tabs">
+      <button class="rtab${tab === "client" ? " active" : ""}" data-rtab="client">Client Report</button>
+      <button class="rtab${tab === "coach" ? " active" : ""}" data-rtab="coach">Coach Report</button>
+    </div>
+    <div id="reportPane"></div>`;
+  document.querySelectorAll(".rtab").forEach(b => b.onclick = () => { state.reportTab = b.dataset.rtab; renderReport(c); });
+  (tab === "coach" ? renderCoachPane : renderClientPane)();
+}
+function renderClientPane() {
   const coaches = [...new Set(reportPool().map(x => x.coach))].sort();
   const statuses = ["New", "Active", "At risk", "Complete"];
   const opt = (v, label) => `<option value="${esc(v)}">${esc(label || v)}</option>`;
-  c.innerHTML = `
+  el("reportPane").innerHTML = `
     <div class="panel">
-      <div class="panel-head"><h3>Report filters</h3><span class="locked" style="font-style:normal">pick what to include, then generate</span></div>
+      <div class="panel-head"><h3>Client report filters</h3><span class="locked" style="font-style:normal">pick what to include, then generate</span></div>
       <div class="panel-body">
         <div class="report-filters">
           <label>Coach
@@ -840,6 +851,68 @@ function renderReport(c) {
     </div>
     <div id="reportOut"><p class="locked" style="padding:6px 2px">Choose your filters above and click Generate report. You will get a summary and a client-by-client breakdown you can print or save as a PDF.</p></div>`;
   el("genReport").onclick = generateReport;
+}
+function renderCoachPane() {
+  el("reportPane").innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>Coach report</h3><span class="locked" style="font-style:normal">caseload and billing readiness per coach</span></div>
+      <div class="panel-body">
+        <div class="report-actions">
+          <button class="btn primary" id="genCoach">Generate coach report</button>
+          <button class="btn sm" id="printCoach" style="display:none">Print / Save PDF</button>
+        </div>
+      </div>
+    </div>
+    <div id="reportOut"><p class="locked" style="padding:6px 2px">Click Generate coach report for a per-coach summary: caseload, hours delivered, and how many cases are ready to bill.</p></div>`;
+  el("genCoach").onclick = generateCoachReport;
+}
+function generateCoachReport() {
+  const pool = reportPool();
+  const coaches = [...new Set(pool.map(x => x.coach))].sort();
+  const data = coaches.map(name => {
+    const cs = pool.filter(x => x.coach === name);
+    return { name, count: cs.length,
+      hours: cs.reduce((s, x) => s + hoursDelivered(x), 0),
+      auth: cs.reduce((s, x) => s + Number(x.authorizedHours || 0), 0),
+      ready: cs.filter(billingReady).length,
+      risk: cs.filter(x => x.status === "At risk").length };
+  });
+  const now = new Date();
+  const stamp = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) +
+    " at " + now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  const body = data.length ? data.map(r => `
+    <tr>
+      <td><b>${esc(r.name)}</b></td>
+      <td class="mono">${r.count}</td>
+      <td class="mono">${r.hours} / ${r.auth}</td>
+      <td class="mono">${r.risk}</td>
+      <td>${r.ready ? '<span class="badge active">' + r.ready + ' ready</span>' : '<span class="badge warn">0 ready</span>'}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="5" class="locked" style="padding:22px 18px">No coaches with active cases.</td></tr>`;
+  el("reportOut").innerHTML = `
+    <div class="report-doc">
+      <div class="report-title">
+        <h3>MRS Coach Report</h3>
+        <span class="locked" style="font-style:normal">all coaches  •  generated ${stamp}  •  by ${state.user ? esc(state.user.name) : "-"} (${state.role})</span>
+      </div>
+      <div class="stat-row">
+        ${stat("Coaches", data.length)}
+        ${stat("Total active cases", data.reduce((s, r) => s + r.count, 0))}
+        ${stat("Hours delivered", data.reduce((s, r) => s + r.hours, 0))}
+        ${stat("Cases ready to bill", data.reduce((s, r) => s + r.ready, 0))}
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Per-coach breakdown</h3></div>
+        <div class="panel-body"><table>
+          <thead><tr><th>Coach</th><th>Active cases</th><th>Hours</th><th>At risk</th><th>Billing</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table></div>
+      </div>
+      <p class="locked">Point-in-time snapshot per coach, generated from the Progress Log. Prototype demo data.</p>
+    </div>`;
+  el("printCoach").style.display = "inline-block";
+  el("printCoach").onclick = () => window.print();
+  audit("Generated coach report", data.length + " coaches");
 }
 function generateReport() {
   const fCoach = el("fCoach").value, fStatus = el("fStatus").value,

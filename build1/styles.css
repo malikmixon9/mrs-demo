@@ -252,13 +252,19 @@ body.a11y-motion *, body.a11y-motion *::before, body.a11y-motion *::after { tran
 }
 
 /* ---------- Generate Report ---------- */
-.report-filters{ display:flex; flex-wrap:wrap; gap:14px; }
+.report-tabs{ display:flex; gap:8px; margin:0 0 16px; flex-wrap:wrap; }
+.rtab{ padding:9px 16px; border:1px solid var(--line); background:#fff;
+  border-radius:8px; font-size:13.5px; font-weight:600; color:var(--muted);
+  cursor:pointer; font-family:inherit; }
+.rtab.active{ background:var(--navy); color:#fff; border-color:var(--navy); }
+.report-filters{ display:flex; flex-wrap:wrap; gap:14px; justify-content:center; }
 .report-filters label{ display:flex; flex-direction:column; gap:5px;
-  font-size:12.5px; font-weight:600; color:var(--muted); }
+  font-size:12.5px; font-weight:600; color:var(--muted); flex:1 1 160px; min-width:0; }
 .report-filters select{ padding:9px 11px; border:1px solid var(--line);
   border-radius:8px; font-size:14px; font-family:inherit; background:#fff;
-  color:var(--navy); min-width:170px; }
-.report-actions{ display:flex; gap:10px; margin-top:16px; }
+  color:var(--navy); width:100%; min-width:0; }
+.report-actions{ display:flex; gap:10px; margin-top:16px; justify-content:center; flex-wrap:wrap; }
+.report-doc .panel-body{ overflow-x:auto; }
 .report-title{ margin:2px 0 14px; }
 .report-title h3{ margin:0 0 3px; }
 @media print{
