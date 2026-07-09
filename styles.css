@@ -250,3 +250,20 @@ body.a11y-motion *, body.a11y-motion *::before, body.a11y-motion *::after { tran
     align-self: center; padding: 2px 8px; font-size: 10.5px; line-height: 1.5; }
   .log-entry .meta .btn{ align-self: center; }
 }
+
+/* ---------- Generate Report ---------- */
+.report-filters{ display:flex; flex-wrap:wrap; gap:14px; }
+.report-filters label{ display:flex; flex-direction:column; gap:5px;
+  font-size:12.5px; font-weight:600; color:var(--muted); }
+.report-filters select{ padding:9px 11px; border:1px solid var(--line);
+  border-radius:8px; font-size:14px; font-family:inherit; background:#fff;
+  color:var(--navy); min-width:170px; }
+.report-actions{ display:flex; gap:10px; margin-top:16px; }
+.report-title{ margin:2px 0 14px; }
+.report-title h3{ margin:0 0 3px; }
+@media print{
+  .sidebar, .topbar, .report-filters, .report-actions, .proto-badge{ display:none !important; }
+  .app, .main, .content{ display:block !important; margin:0 !important; padding:0 !important; }
+  .report-doc{ padding:0; }
+  .panel{ break-inside:avoid; }
+}

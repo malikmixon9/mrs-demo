@@ -119,7 +119,8 @@ const NAV = {
     { view: "addcoach", label: "Add Coach" },
     { view: "reminders", label: "Follow-up Reminders" },
     { view: "billing", label: "Billing" },
-    { view: "archive", label: "Archive" }
+    { view: "archive", label: "Archive" },
+    { view: "report", label: "Generate Report" }
   ],
   Coach: [
     { view: "myclients", label: "My Clients" },
@@ -128,7 +129,8 @@ const NAV = {
   Supervisor: [
     { view: "overview", label: "Client Overview" },
     { view: "reminders", label: "Follow-up Reminders" },
-    { view: "coaches", label: "Coach Monitoring" }
+    { view: "coaches", label: "Coach Monitoring" },
+    { view: "report", label: "Generate Report" }
   ]
 };
 function buildNav() {
@@ -161,6 +163,7 @@ function render() {
     case "archive": return renderArchive(c);
     case "addclient": return renderAddClient(c);
     case "addcoach": return renderAddCoach(c);
+    case "report": return renderReport(c);
   }
 }
 function setTitle(t) { el("viewTitle").textContent = t; }
@@ -875,6 +878,101 @@ function wireLogForm(x) {
 }
 
 /* ---------- shared bits ---------- */
+/* ---------- Admin + Supervisor: Generate Report ----------
+   Simple, filterable point-in-time report over current (non-archived) cases.
+   Everything shown is DERIVED from the Progress Log, never typed twice. The
+   exact filters Terri wants are an open question for the requirements session. */
+function reportPool() { return CLIENTS.filter(x => !isArchived(x)); }
+function renderReport(c) {
+  setTitle("Generate Report");
+  const coaches = [...new Set(reportPool().map(x => x.coach))].sort();
+  const statuses = ["New", "Active", "At risk", "Complete"];
+  const opt = (v, label) => `<option value="${esc(v)}">${esc(label || v)}</option>`;
+  c.innerHTML = `
+    <div class="panel">
+      <div class="panel-head"><h3>Report filters</h3><span class="locked" style="font-style:normal">pick what to include, then generate</span></div>
+      <div class="panel-body">
+        <div class="report-filters">
+          <label>Coach
+            <select id="fCoach"><option value="">All coaches</option>${coaches.map(x => opt(x)).join("")}</select></label>
+          <label>Status
+            <select id="fStatus"><option value="">All statuses</option>${statuses.map(x => opt(x)).join("")}</select></label>
+          <label>Service type
+            <select id="fService"><option value="">All services</option>${SERVICE_TYPES.map(x => opt(x)).join("")}</select></label>
+          <label>Billing
+            <select id="fBilling"><option value="">All</option>${opt("ready", "Ready to bill")}${opt("progress", "In progress")}</select></label>
+        </div>
+        <div class="report-actions">
+          <button class="btn primary" id="genReport">Generate report</button>
+          <button class="btn sm" id="printReport" style="display:none">Print / Save PDF</button>
+        </div>
+      </div>
+    </div>
+    <div id="reportOut"><p class="locked" style="padding:6px 2px">Choose your filters above and click Generate report. You will get a summary and a client-by-client breakdown you can print or save as a PDF.</p></div>`;
+  el("genReport").onclick = generateReport;
+}
+function generateReport() {
+  const fCoach = el("fCoach").value, fStatus = el("fStatus").value,
+        fService = el("fService").value, fBilling = el("fBilling").value;
+  let rows = reportPool();
+  if (fCoach) rows = rows.filter(x => x.coach === fCoach);
+  if (fStatus) rows = rows.filter(x => x.status === fStatus);
+  if (fService) rows = rows.filter(x => x.serviceType === fService);
+  if (fBilling === "ready") rows = rows.filter(billingReady);
+  if (fBilling === "progress") rows = rows.filter(x => !billingReady(x));
+
+  const totHours = rows.reduce((s, x) => s + hoursDelivered(x), 0);
+  const totAuth = rows.reduce((s, x) => s + Number(x.authorizedHours || 0), 0);
+  const readyCt = rows.filter(billingReady).length;
+
+  const parts = [];
+  if (fCoach) parts.push("coach: " + fCoach);
+  if (fStatus) parts.push("status: " + fStatus);
+  if (fService) parts.push("service: " + fService);
+  if (fBilling) parts.push("billing: " + (fBilling === "ready" ? "ready to bill" : "in progress"));
+  const filterText = parts.length ? parts.join("  •  ") : "all current cases";
+  const now = new Date();
+  const stamp = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }) +
+    " at " + now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+
+  const body = rows.length ? rows.map(x => `
+    <tr>
+      <td><b>${esc(x.name)}</b><br><span class="locked" style="font-style:normal">${esc(x.goal)}</span></td>
+      <td>${esc(x.coach)}</td>
+      <td>${x.serviceType}</td>
+      <td><span class="badge ${statusClass(x.status)}">${x.status}</span></td>
+      <td class="mono">${hoursDelivered(x)} / ${x.authorizedHours}</td>
+      <td class="mono">${pctComplete(x)}%</td>
+      <td>${billingReady(x) ? '<span class="badge active">Ready to bill</span>' : '<span class="badge warn">In progress</span>'}</td>
+    </tr>`).join("")
+    : `<tr><td colspan="7" class="locked" style="padding:22px 18px">No clients match these filters. Try widening them.</td></tr>`;
+
+  el("reportOut").innerHTML = `
+    <div class="report-doc">
+      <div class="report-title">
+        <h3>MRS Client Report</h3>
+        <span class="locked" style="font-style:normal">${esc(filterText)}  •  generated ${stamp}  •  by ${state.user ? esc(state.user.name) : "-"} (${state.role})</span>
+      </div>
+      <div class="stat-row">
+        ${stat("Clients in report", rows.length)}
+        ${stat("Hours delivered", totHours)}
+        ${stat("Hours authorized", totAuth)}
+        ${stat("Ready to bill", readyCt)}
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h3>Client breakdown</h3></div>
+        <div class="panel-body"><table>
+          <thead><tr><th>Client</th><th>Coach</th><th>Service</th><th>Status</th><th>Hours</th><th>Progress</th><th>Billing</th></tr></thead>
+          <tbody>${body}</tbody>
+        </table></div>
+      </div>
+      <p class="locked">Point-in-time snapshot of current cases, generated from the Progress Log. Hours, progress, and billing readiness are calculated automatically. Prototype demo data.</p>
+    </div>`;
+  el("printReport").style.display = "inline-block";
+  el("printReport").onclick = () => window.print();
+  audit("Generated report", filterText);
+}
+
 function stat(lbl, val) { return `<div class="stat"><div class="lbl">${lbl}</div><div class="val">${val}</div></div>`; }
 function progressCell(x) {
   const p = pctComplete(x);
